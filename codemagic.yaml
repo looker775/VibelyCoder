@@ -1,23 +1,70 @@
 workflows:
   electron-build:
     name: Electron App Build
-    instance_type: mac_mini_m1 # (required for macOS apps, works for all builds)
+    instance_type: mac_mini_m1   # ✅ Mac Mini builds Mac, Windows & Linux in one go
+    max_build_duration: 60
     environment:
-      node: 20
-      npm: true
+      flutter: false             # ✅ disables Flutter checks
+      vars:
+        NODE_VERSION: 20
+
     scripts:
-      - name: Install dependencies
-        script: npm install
+      - name: Install Node.js
+        script: |
+          echo "⬇️ Installing Node.js v$NODE_VERSION..."
+          curl -fsSL https://deb.nodesource.com/setup_$NODE_VERSION.x | sudo -E bash -
+          sudo apt-get install -y nodejs zip jq
+          node -v
+          npm -v
+
+      - name: Bump version in package.json
+        script: |
+          echo "🔢 Bumping version..."
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "📦 Current version: $CURRENT_VERSION"
+
+          # Increment minor version (e.g. 1.0.0 -> 1.0.1)
+          NEW_VERSION=$(echo $CURRENT_VERSION | awk -F. '{ $3+=1; print $1"."$2"."$3 }')
+          echo "📦 New version: $NEW_VERSION"
+
+          # Write new version into package.json
+          jq --arg v "$NEW_VERSION" '.version = $v' package.json > package.tmp.json && mv package.tmp.json package.json
+
+          git config --global user.email "builder@codemagic.io"
+          git config --global user.name "Codemagic Bot"
+          git commit -am "🔢 Bump version to $NEW_VERSION" || echo "No changes to commit"
+          echo "✅ Version updated to $NEW_VERSION"
+
+      - name: Install npm dependencies
+        script: |
+          echo "📦 Installing npm dependencies..."
+          npm install
+
       - name: Build Electron app for all platforms
         script: |
-          npm run build
+          echo "🏗️ Building Electron app..."
           npm run dist
+
+      - name: Zip all builds with dynamic name
+        script: |
+          echo "📦 Creating dynamic ZIP..."
+          VERSION=$(node -p "require('./package.json').version")
+          cd dist
+          zip -r VibelyCoder_v${VERSION}_mac-win-linux.zip .
+          echo "✅ Created VibelyCoder_v${VERSION}_mac-win-linux.zip"
+
     artifacts:
-      - dist/**/*
+      - dist/VibelyCoder_v*_mac-win-linux.zip   # ✅ Only send the versioned ZIP
+
     cache:
       cache_paths:
         - $HOME/.npm
+
     publishing:
       email:
         recipients:
-          - your@email.com
+          - kaliwill3@gmail.com   # ✅ You’ll receive the ZIP here
+        notify:
+          success: true
+          failure: true
+        attach_artifacts: true    # ✅ Will attach ZIP if under 20 MB, else send link
