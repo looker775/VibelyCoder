@@ -44,3 +44,4 @@ if (missing.length > 0) {
 } else {
   console.log("✅ All CLI dependencies are already listed in package.json");
 }
+
