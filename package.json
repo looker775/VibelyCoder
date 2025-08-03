@@ -1,0 +1,22 @@
+{
+  "name": "vibelycoder",
+  "version": "1.0.0",
+  "main": "backend/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node backend/index.js",
+    "deploy:web": "node backend/deploy.js",
+    "build:mobile": "node backend/build-mobile.js",
+    "build:desktop": "node backend/build-desktop.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "axios": "^1.7.2",
+    "dotenv": "^16.3.1",
+    "express": "^4.19.2",
+    "form-data": "^4.0.0",
+    "node-fetch": "^3.3.2",
+    "openai": "^4.0.0",
+    "simple-git": "^3.20.0"
+  }
+}
