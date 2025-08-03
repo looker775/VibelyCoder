@@ -1,72 +1,20 @@
 #!/usr/bin/env node
 
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
-const { spawn } = require('child_process');
-const fs = require('fs');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
-const readline = require('readline');
+const fs = require('fs');
+require('dotenv').config(); // ✅ Load .env automatically
 
+// === 🌍 GLOBAL VARIABLES ===
 let mainWindow;
-let cliProcess;
-
-// 📂 Создаём папку для данных программы
 const userDataPath = path.join(process.env.APPDATA || __dirname, 'VibelyCoder');
 if (!fs.existsSync(userDataPath)) {
   fs.mkdirSync(userDataPath, { recursive: true });
 }
 
-const keysFile = path.join(userDataPath, 'keys.json');
-const activatedFile = path.join(userDataPath, 'activated.json');
+const projectFile = path.join(userDataPath, 'project.json');
 
-// ✅ Если keys.json ещё не скопирован → копируем из exe
-const originalKeysPath = path.join(__dirname, 'keys.json');
-if (!fs.existsSync(keysFile) && fs.existsSync(originalKeysPath)) {
-  fs.copyFileSync(originalKeysPath, keysFile);
-}
-
-// ✅ Читаем ключи
-let validKeys = [];
-if (fs.existsSync(keysFile)) {
-  validKeys = JSON.parse(fs.readFileSync(keysFile, 'utf-8'));
-} else {
-  console.log('❌ keys.json не найден! Создай файл с ключами.');
-  process.exit(1);
-}
-
-// ✅ Проверяем активацию
-if (fs.existsSync(activatedFile)) {
-  console.log('✅ Приложение уже активировано.');
-  app.whenReady().then(createWindow);
-} else {
-  askLicense();
-}
-
-// === 🔑 Лицензия ===
-function askLicense() {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-  });
-
-  rl.question('🔑 Enter your VibelyCoder License Key: ', function (key) {
-    if (validKeys.includes(key)) {
-      console.log('✅ License activated! Welcome to VibelyCoder.');
-
-      validKeys = validKeys.filter(k => k !== key);
-      fs.writeFileSync(keysFile, JSON.stringify(validKeys, null, 2));
-
-      fs.writeFileSync(activatedFile, JSON.stringify({ key, date: new Date() }, null, 2));
-
-      rl.close();
-      app.whenReady().then(createWindow);
-    } else {
-      console.log('❌ Invalid license. Please restart and try again.');
-      rl.close();
-    }
-  });
-}
-
-// === 🪟 Создаём окно ===
+// === 🚀 ELECTRON MAIN WINDOW ===
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1400,
@@ -78,41 +26,107 @@ function createWindow() {
     }
   });
 
-  mainWindow.loadFile('index.html');
+  const indexPath = path.join(__dirname, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    mainWindow.loadFile(indexPath);
+  } else {
+    mainWindow.loadURL('data:text/html;charset=utf-8,' +
+      encodeURIComponent('<h1>🚀 VibelyCoder Dev Window</h1><p>index.html not found</p>'));
+  }
+
+  // 👀 DevTools auto-open in dev mode
+  mainWindow.webContents.openDevTools();
 }
 
-// === 🎯 CLI Integration ===
-ipcMain.handle('open-cli', async () => {
-  if (cliProcess) {
-    return { success: false, message: 'CLI already running' };
-  }
-
-  const cliPath = path.join(process.resourcesPath, 'cli', 'cli.exe');
-  cliProcess = spawn(cliPath, [], { shell: true });
-
-  let output = '';
-  cliProcess.stdout.on('data', (data) => {
-    output += data.toString();
-    mainWindow.webContents.send('cli-output', data.toString());
-  });
-
-  cliProcess.stderr.on('data', (data) => {
-    output += data.toString();
-    mainWindow.webContents.send('cli-output', data.toString());
-  });
-
-  cliProcess.on('close', (code) => {
-    mainWindow.webContents.send('cli-output', `\nCLI exited with code ${code}`);
-    cliProcess = null;
-  });
-
-  return { success: true, message: 'CLI started' };
+app.whenReady().then(() => {
+  console.log("✅ Electron ready");
+  createWindow();
 });
 
-ipcMain.handle('send-cli-command', (_, command) => {
-  if (cliProcess) {
-    cliProcess.stdin.write(command + '\n');
-    return { success: true };
+// ✅ Quit app when all windows closed
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') app.quit();
+});
+
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) createWindow();
+});
+
+// === 💬 AI CHAT HANDLER (GPT‑4.1 + Claude) ===
+ipcMain.handle('ai:chat', async (event, msg) => {
+  console.log(`🤖 User asked AI: ${msg}`);
+  try {
+    // --- Option 1: GPT‑4.1 (OpenAI API)
+    const openai = (await import('openai')).default;
+    const client = new openai({ apiKey: process.env.OPENAI_KEY });
+
+    const response = await client.chat.completions.create({
+      model: "gpt-4.1",
+      messages: [{ role: "user", content: msg }]
+    });
+
+    return response.choices[0].message.content;
+
+    // --- Option 2: Claude (Anthropic API) – keep for fallback
+    // const fetch = (await import('node-fetch')).default;
+    // const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
+    //   method: "POST",
+    //   headers: {
+    //     "Content-Type": "application/json",
+    //     "x-api-key": process.env.CLAUDE_API_KEY
+    //   },
+    //   body: JSON.stringify({
+    //     model: "claude-3-opus-20240229",
+    //     max_tokens: 400,
+    //     messages: [{ role: "user", content: msg }]
+    //   })
+    // });
+    // const claudeData = await claudeRes.json();
+    // return claudeData.content[0].text;
+  } catch (err) {
+    console.error("❌ AI Chat Error:", err);
+    return "⚠️ Error connecting to AI model.";
   }
-  return { success: false, message: 'CLI is not running' };
+});
+
+// === 💾 SAVE PROJECT HANDLER ===
+ipcMain.handle('project:save', async (event, data) => {
+  try {
+    fs.writeFileSync(projectFile, JSON.stringify(data, null, 2));
+    console.log("✅ Project saved:", projectFile);
+    return { success: true };
+  } catch (err) {
+    console.error("❌ Save project failed:", err);
+    return { success: false, error: err.message };
+  }
+});
+
+// === 📂 LOAD PROJECT HANDLER ===
+ipcMain.handle('project:load', async () => {
+  try {
+    if (fs.existsSync(projectFile)) {
+      const content = JSON.parse(fs.readFileSync(projectFile, 'utf-8'));
+      console.log("📂 Project loaded.");
+      return { success: true, data: content };
+    }
+    return { success: false, error: "No project saved yet." };
+  } catch (err) {
+    console.error("❌ Load project failed:", err);
+    return { success: false, error: err.message };
+  }
+});
+
+// === 🏗️ BUILD HANDLER (placeholder for API triggers) ===
+ipcMain.handle('project:build', async () => {
+  try {
+    console.log("🚀 Build triggered...");
+
+    // ✅ In future: trigger APIs for Vercel, Netlify, Render, Codemagic
+    // Example: send API request to Vercel to deploy
+
+    return { success: true, message: "✅ Build started via Vercel/Netlify placeholder." };
+  } catch (err) {
+    console.error("❌ Build failed:", err);
+    return { success: false, error: err.message };
+  }
 });
