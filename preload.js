@@ -1,33 +1,25 @@
-// ✅ preload.js – FINAL version for VibelyCoder (Claude + GUI + CLI support)
+// 🔒 preload.js — Safe API Bridge for VibelyCoder
+const { contextBridge, ipcRenderer } = require("electron");
 
-const { contextBridge, ipcRenderer } = require('electron');
+// ✅ Expose a secure API to the frontend
+contextBridge.exposeInMainWorld("vibelyAPI", {
+  // 💬 Send a message to GPT‑4.1 / Claude (AI Chat)
+  sendMessageToAI: async (msg) => {
+    return await ipcRenderer.invoke("ai:chat", msg);
+  },
 
-contextBridge.exposeInMainWorld('vibelyAPI', {
-  // 🔑 --- LICENSE HANDLING ---
-  verifyLicense: (key) => ipcRenderer.invoke('verify-license', key),
-  licenseSuccess: () => ipcRenderer.send('license-success'),
+  // 💾 Save project (HTML/CSS/JS layout from drag & drop builder)
+  saveProject: async (data) => {
+    return await ipcRenderer.invoke("project:save", data);
+  },
 
-  // 🤖 --- CLAUDE AI FUNCTIONS ---
-  saveClaudeKey: (key) => ipcRenderer.invoke('saveClaudeKey', key),
-  askClaude: (prompt) => ipcRenderer.invoke('askClaude', prompt),
+  // 📂 Load project (when user reopens the app)
+  loadProject: async () => {
+    return await ipcRenderer.invoke("project:load");
+  },
 
-  // 📂 --- FILE & COMMAND ACTIONS ---
-  writeFile: (sessionId, relPath, content) =>
-    ipcRenderer.invoke('writeFile', sessionId, relPath, content),
-  runCommand: (sessionId, command, args) =>
-    ipcRenderer.invoke('runCommand', sessionId, command, args),
-
-  // 🌍 --- DEPLOYMENT ---
-  deployTo: (platform, sessionId) =>
-    ipcRenderer.invoke('deployTo', platform, sessionId),
-
-  // 🎨 --- GUI / UI BUILDER FEATURES ---
-  exportLayout: (layout) => ipcRenderer.invoke('export-layout', layout),
-  openInVSCode: () => ipcRenderer.invoke('open-vscode'),
-  buildInstaller: () => ipcRenderer.invoke('build-installer'),
-
-  // 🖥️ --- CLI INTEGRATION ---
-  openCLI: () => ipcRenderer.send('open-cli'),
-  sendCLICommand: (cmd) => ipcRenderer.send('cli-command', cmd),
-  onCLIOutput: (callback) => ipcRenderer.on('cli-output', (event, data) => callback(data))
+  // 🏗️ Run build (package as website/app via Vercel/Netlify/Codemagic)
+  runBuild: async () => {
+    return await ipcRenderer.invoke("project:build");
+  }
 });
