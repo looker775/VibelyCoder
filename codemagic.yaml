@@ -1,0 +1,23 @@
+workflows:
+  electron-build:
+    name: Electron App Build
+    instance_type: mac_mini_m1 # (required for macOS apps, works for all builds)
+    environment:
+      node: 20
+      npm: true
+    scripts:
+      - name: Install dependencies
+        script: npm install
+      - name: Build Electron app for all platforms
+        script: |
+          npm run build
+          npm run dist
+    artifacts:
+      - dist/**/*
+    cache:
+      cache_paths:
+        - $HOME/.npm
+    publishing:
+      email:
+        recipients:
+          - your@email.com
