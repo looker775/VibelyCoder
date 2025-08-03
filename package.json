@@ -1,22 +1,83 @@
 {
   "name": "vibelycoder",
   "version": "1.0.0",
-  "main": "backend/index.js",
-  "type": "module",
-  "scripts": {
-    "dev": "node backend/index.js",
-    "deploy:web": "node backend/deploy.js",
-    "build:mobile": "node backend/build-mobile.js",
-    "build:desktop": "node backend/build-desktop.js"
-  },
+  "description": "VibelyCoder desktop app",
+  "main": "main.js",
   "dependencies": {
-    "@supabase/supabase-js": "^2.39.0",
-    "axios": "^1.7.2",
-    "dotenv": "^16.3.1",
-    "express": "^4.19.2",
-    "form-data": "^4.0.0",
+    "abort-controller": "^3.0.0",
+    "accepts": "^1.3.8",
+    "agentkeepalive": "^4.6.0",
+    "array-flatten": "^1.1.1",
+    "asynckit": "^0.4.0",
+    "axios": "^1.11.0",
+    "body-parser": "^1.20.3",
+    "bytes": "^3.1.2",
+    "combined-stream": "^1.0.8",
+    "content-disposition": "^0.5.4",
+    "content-type": "^1.0.5",
+    "cookie": "^0.7.1",
+    "cookie-signature": "^1.0.6",
+    "debug": "^2.6.9",
+    "dotenv": "^16.6.1",
+    "electron-is-dev": "^2.0.0",
+    "express": "^4.21.2",
+    "follow-redirects": "^1.15.11",
+    "form-data": "^4.0.4",
     "node-fetch": "^3.3.2",
-    "openai": "^4.0.0",
-    "simple-git": "^3.20.0"
-  }
+    "openai": "^4.104.0",
+    "simple-git": "^3.28.0",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "electron": "^37.2.5",
+    "electron-builder": "^26.0.12"
+  },
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "build": {
+    "appId": "com.vibelycoder.app",
+    "productName": "VibelyCoder",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "app.js",
+      "index.html",
+      "preload.js",
+      "cli/**",
+      "assets/**",
+      "node_modules/**",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "assets/icon.icns"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "icon": "assets/icon.png"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/looker775/VibelyCoder.git"
+  },
+  "keywords": [],
+  "author": "Ali",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/looker775/VibelyCoder/issues"
+  },
+  "homepage": "https://github.com/looker775/VibelyCoder#readme"
 }
+
