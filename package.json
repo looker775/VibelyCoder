@@ -30,12 +30,17 @@
   },
   "devDependencies": {
     "electron": "^37.2.5",
-    "electron-builder": "^26.0.12"
+    "electron-builder": "^26.0.12",
+    "standard-version": "^9.5.0"
   },
   "scripts": {
     "start": "electron .",
     "pack": "electron-builder --dir",
-    "dist": "electron-builder"
+    "build": "electron-builder",
+    "dist": "npm run version:bump && electron-builder",
+    "version:bump": "standard-version --release-as patch",
+    "preversion": "echo '🔄 Preparing new version…'",
+    "version": "git add . && git commit -m \"🔖 bump version\" && git push"
   },
   "build": {
     "appId": "com.vibelycoder.app",
@@ -80,4 +85,3 @@
   },
   "homepage": "https://github.com/looker775/VibelyCoder#readme"
 }
-
