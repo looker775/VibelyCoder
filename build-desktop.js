@@ -1,10 +1,40 @@
-export async function buildDesktopApp(folder) {
+// build-desktop.js
+const { execSync } = require("child_process");
+const builder = require("electron-builder");
+const axios = require("axios");
+require("dotenv").config();
+
+(async () => {
   try {
-    console.log("💻 Triggering GitHub Actions for Electron build...");
-    // Here we just return success; GitHub Actions will do the build on push
-    return { message: "Desktop build triggered via GitHub Actions" };
+    console.log("🔄 Bumping version...");
+    execSync("npx standard-version --release-as patch", { stdio: "inherit" });
+
+    console.log("🔨 Building Electron app...");
+    await builder.build();
+
+    console.log("✅ Build complete!");
+
+    const deployHooks = {
+      vercel: process.env.VERCEL_DEPLOY_HOOK_URL,
+      netlify: process.env.NETLIFY_DEPLOY_HOOK_URL,
+      render: process.env.RENDER_DEPLOY_HOOK_URL
+    };
+
+    for (const [platform, hook] of Object.entries(deployHooks)) {
+      if (hook) {
+        try {
+          console.log(`🚀 Triggering deployment to ${platform}...`);
+          const res = await axios.post(hook);
+          console.log(`✅ ${platform} deploy triggered:`, res.status);
+        } catch (err) {
+          console.error(`❌ ${platform} deploy failed:`, err.message);
+        }
+      } else {
+        console.warn(`⚠️ No hook set for ${platform}`);
+      }
+    }
   } catch (err) {
-    console.error("❌ Desktop build failed", err);
-    return { error: err.message };
+    console.error("❌ Build failed:", err.message);
+    process.exit(1);
   }
-}
+})();
