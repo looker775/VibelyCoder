@@ -1,8 +1,17 @@
 {
   "name": "vibelycoder",
-  "version": "1.0.3",
-  "description": "VibelyCoder desktop app",
+  "version": "1.0.4",
+  "description": "AI-powered universal app builder for web, desktop, and mobile",
   "main": "app.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron .",
+    "build": "electron-builder",
+    "pack": "electron-builder --dir",
+    "dist": "node build-desktop.js",
+    "build:mobile": "node build-mobile.js",
+    "version:bump": "standard-version --release-as patch"
+  },
   "dependencies": {
     "abort-controller": "^3.0.0",
     "accepts": "^1.3.8",
@@ -33,13 +42,6 @@
     "electron-builder": "^26.0.12",
     "standard-version": "^9.5.0"
   },
-  "scripts": {
-    "start": "electron .",
-    "build": "electron-builder",
-    "pack": "electron-builder --dir",
-    "dist": "npm run version:bump && electron-builder",
-    "version:bump": "standard-version --release-as patch"
-  },
   "build": {
     "appId": "com.vibelycoder.app",
     "productName": "VibelyCoder",
@@ -48,10 +50,13 @@
     },
     "files": [
       "app.js",
+      "main.js",
       "index.html",
       "preload.js",
       "cli/**",
       "assets/**",
+      "build-desktop.js",
+      "build-mobile.js",
       "node_modules/**",
       "package.json"
     ],
@@ -69,13 +74,28 @@
         "deb"
       ],
       "icon": "assets/icon.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
     }
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/looker775/VibelyCoder.git"
+    "url": "https://github.com/looker775/VibelyCoder.git"
   },
-  "keywords": [],
+  "keywords": [
+    "ai",
+    "builder",
+    "desktop",
+    "mobile",
+    "website",
+    "drag-and-drop",
+    "GPT",
+    "Electron",
+    "React Native"
+  ],
   "author": "Ali",
   "license": "ISC",
   "bugs": {
