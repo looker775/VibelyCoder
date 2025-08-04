@@ -1,34 +1,48 @@
-import simpleGit from "simple-git";
-import fetch from "node-fetch";
+// deploy.js
+const fetch = require('node-fetch');
 
-export async function deployWebsite(folder) {
-  try {
-    console.log("📤 Deploying website to GitHub + Vercel...");
-    const git = simpleGit();
+async function deploy() {
+  const renderHook = process.env.RENDER_DEPLOY_HOOK_URL;
+  const vercelHook = process.env.VERCEL_DEPLOY_HOOK_URL;
+  const netlifyHook = process.env.NETLIFY_DEPLOY_HOOK_URL;
 
-    // Initialize repo if not already
-    await git.init();
-    await git.addRemote("origin", process.env.GITHUB_REPO_URL).catch(() => {});
-    await git.add(".");
-    await git.commit("AI: Generated website");
-    await git.push("origin", "main", ["--force"]);
+  const results = [];
 
-    // Trigger Vercel deployment
-    const vercelDeploy = await fetch("https://api.vercel.com/v13/deployments", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.VERCEL_TOKEN}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        name: "vibelycoder",
-        gitSource: { type: "github", repoId: process.env.GITHUB_REPO_ID }
-      })
-    }).then(r => r.json());
-
-    return { url: vercelDeploy.url };
-  } catch (err) {
-    console.error("❌ Website deploy failed", err);
-    return { error: err.message };
+  async function callHook(name, url) {
+    if (!url) {
+      console.warn(`⚠️ ${name} deploy hook is not set.`);
+      results.push(`${name} skipped (no URL)`);
+      return;
+    }
+    try {
+      const res = await fetch(url, { method: 'POST' });
+      if (res.ok) {
+        console.log(`✅ ${name} deployment triggered.`);
+        results.push(`${name} OK`);
+      } else {
+        console.error(`❌ ${name} deployment failed: ${res.statusText}`);
+        results.push(`${name} failed`);
+      }
+    } catch (err) {
+      console.error(`❌ ${name} error: ${err.message}`);
+      results.push(`${name} error`);
+    }
   }
+
+  await callHook('Render', renderHook);
+  await callHook('Vercel', vercelHook);
+  await callHook('Netlify', netlifyHook);
+
+  return { success: true, message: 'Deployment attempted.', results };
+}
+
+if (require.main === module) {
+  // CLI mode
+  deploy().then((res) => {
+    console.log(res);
+    process.exit(0);
+  });
+} else {
+  // Electron / preload context
+  module.exports = deploy;
 }
