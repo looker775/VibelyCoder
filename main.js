@@ -1,7 +1,8 @@
 // main.js
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const isDev = require('electron-is-dev');
+const buildMobile = require('./build-mobile.js'); // ✅ Add mobile build function
 
 let mainWindow;
 
@@ -31,4 +32,16 @@ app.on('window-all-closed', () => {
 
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) createWindow();
+});
+
+// ✅ IPC to trigger mobile build when called from renderer
+ipcMain.handle('mobile:build', async () => {
+  try {
+    console.log("📱 Mobile build requested by renderer...");
+    await buildMobile();
+    return { success: true, message: "✅ Mobile app pushed to GitHub." };
+  } catch (err) {
+    console.error("❌ Mobile build failed:", err);
+    return { success: false, error: err.message };
+  }
 });
