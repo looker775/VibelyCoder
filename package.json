@@ -11,7 +11,9 @@
     "dist": "node build-desktop.js",
     "build:mobile": "node build-mobile.js",
     "build:web": "echo '✅ Web build placeholder'",
-    "version:bump": "standard-version --release-as patch"
+    "version:bump": "standard-version --release-as patch",
+    "preversion": "echo '🔄 Preparing new version…'",
+    "version": "git add . && git commit -m \"🔖 bump version\" && git push"
   },
   "dependencies": {
     "abort-controller": "^3.0.0",
