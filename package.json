@@ -1,152 +1,109 @@
-
-const { app, BrowserWindow, ipcMain } = require('electron');
-const path = require('path');
-const fs = require('fs');
-const dotenv = require('dotenv');
-const { exec } = require('child_process');
-
-dotenv.config();
-
-let mainWindow;
-
-// === 📂 Setup project file path ===
-const userDataPath = path.join(process.env.APPDATA || __dirname, 'VibelyCoder');
-if (!fs.existsSync(userDataPath)) fs.mkdirSync(userDataPath, { recursive: true });
-const projectFile = path.join(userDataPath, 'project.json');
-
-// === 🪟 Create Electron Window ===
-function createWindow() {
-  mainWindow = new BrowserWindow({
-    width: 1400,
-    height: 900,
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      nodeIntegration: false,
-      contextIsolation: true
+{
+  "name": "vibelycoder",
+  "version": "1.0.4",
+  "description": "AI-powered universal app builder for web, desktop, and mobile",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron .",
+    "build": "electron-builder",
+    "pack": "electron-builder --dir",
+    "dist": "node build-desktop.js",
+    "build:mobile": "node build-mobile.js",
+    "build:web": "echo '✅ Web build placeholder'",
+    "version:bump": "standard-version --release-as patch"
+  },
+  "dependencies": {
+    "abort-controller": "^3.0.0",
+    "accepts": "^1.3.8",
+    "agentkeepalive": "^4.6.0",
+    "array-flatten": "^1.1.1",
+    "asynckit": "^0.4.0",
+    "axios": "^1.11.0",
+    "body-parser": "^1.20.3",
+    "bytes": "^3.1.2",
+    "combined-stream": "^1.0.8",
+    "content-disposition": "^0.5.4",
+    "content-type": "^1.0.5",
+    "cookie": "^0.7.1",
+    "cookie-signature": "^1.0.6",
+    "debug": "^2.6.9",
+    "dotenv": "^16.6.1",
+    "electron": "^37.2.5",
+    "electron-builder": "^26.0.12",
+    "electron-is-dev": "^2.0.0",
+    "express": "^4.21.2",
+    "follow-redirects": "^1.15.11",
+    "form-data": "^4.0.4",
+    "node-fetch": "^3.3.2",
+    "openai": "^4.104.0",
+    "simple-git": "^3.28.0",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "standard-version": "^9.5.0"
+  },
+  "build": {
+    "appId": "com.vibelycoder.app",
+    "productName": "VibelyCoder",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "app.js",
+      "main.js",
+      "index.html",
+      "preload.js",
+      "renderer.js",
+      "cli/**",
+      "assets/**",
+      "build-desktop.js",
+      "build-mobile.js",
+      "node_modules/**",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "assets/icon.icns"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "icon": "assets/icon.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
     }
-  });
-
-  const indexPath = path.join(__dirname, 'index.html');
-  if (fs.existsSync(indexPath)) {
-    mainWindow.loadFile(indexPath);
-  } else {
-    mainWindow.loadURL('data:text/html;charset=utf-8,' +
-      encodeURIComponent('<h1>🚀 VibelyCoder Dev Window</h1><p>index.html not found</p>'));
-  }
-
-  if (!app.isPackaged) mainWindow.webContents.openDevTools();
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/looker775/VibelyCoder.git"
+  },
+  "keywords": [
+    "ai",
+    "builder",
+    "desktop",
+    "mobile",
+    "website",
+    "drag-and-drop",
+    "GPT",
+    "Electron",
+    "React Native"
+  ],
+  "author": "Ali",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/looker775/VibelyCoder/issues"
+  },
+  "homepage": "https://github.com/looker775/VibelyCoder#readme"
 }
 
-app.whenReady().then(createWindow);
-app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
-app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
-
-
-// === 💬 AI CHAT (GPT‑4.1 & Claude) ===
-ipcMain.handle('ai:chat', async (_event, msg) => {
-  console.log(`🤖 User asked AI: ${msg}`);
-  try {
-    const openai = (await import('openai')).default;
-    const client = new openai({ apiKey: process.env.OPENAI_KEY });
-
-    const response = await client.chat.completions.create({
-      model: "gpt-4.1",
-      messages: [{ role: "user", content: msg }]
-    });
-
-    return response.choices[0].message.content;
-
-    // Claude fallback (optional)
-    // const fetch = (await import('node-fetch')).default;
-    // const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
-    //   method: "POST",
-    //   headers: {
-    //     "Content-Type": "application/json",
-    //     "x-api-key": process.env.CLAUDE_API_KEY
-    //   },
-    //   body: JSON.stringify({
-    //     model: "claude-3-opus-20240229",
-    //     max_tokens: 400,
-    //     messages: [{ role: "user", content: msg }]
-    //   })
-    // });
-    // const claudeData = await claudeRes.json();
-    // return claudeData.content[0].text;
-  } catch (err) {
-    console.error("❌ AI Chat Error:", err);
-    return "⚠️ Error connecting to AI.";
-  }
-});
-
-
-// === 💾 SAVE PROJECT ===
-ipcMain.handle('project:save', async (_event, data) => {
-  try {
-    fs.writeFileSync(projectFile, JSON.stringify(data, null, 2));
-    console.log("✅ Project saved to:", projectFile);
-    return { success: true };
-  } catch (err) {
-    console.error("❌ Save error:", err);
-    return { success: false, error: err.message };
-  }
-});
-
-
-// === 📂 LOAD PROJECT ===
-ipcMain.handle('project:load', async () => {
-  try {
-    if (!fs.existsSync(projectFile)) return { success: false, error: "No project saved yet." };
-    const content = JSON.parse(fs.readFileSync(projectFile, 'utf-8'));
-    return { success: true, data: content };
-  } catch (err) {
-    console.error("❌ Load error:", err);
-    return { success: false, error: err.message };
-  }
-});
-
-
-// === 🚀 BUILD & DEPLOY HANDLER ===
-ipcMain.handle('project:build', async () => {
-  try {
-    console.log("🔨 Running build-desktop.js...");
-    await runCommand('node build-desktop.js');
-
-    // ✅ Deploy to Render if env exists
-    if (process.env.RENDER_DEPLOY) {
-      console.log("🌐 Deploying to Render...");
-      await runCommand(process.env.RENDER_DEPLOY);
-    }
-
-    // ✅ Deploy to Vercel
-    if (process.env.VERCEL_DEPLOY) {
-      console.log("🌐 Deploying to Vercel...");
-      await runCommand(process.env.VERCEL_DEPLOY);
-    }
-
-    // ✅ Deploy to Netlify
-    if (process.env.NETLIFY_DEPLOY) {
-      console.log("🌐 Deploying to Netlify...");
-      await runCommand(process.env.NETLIFY_DEPLOY);
-    }
-
-    return { success: true, message: "✅ Build and deployment complete." };
-  } catch (err) {
-    console.error("❌ Build error:", err);
-    return { success: false, error: err.message };
-  }
-});
-
-
-// === 🛠️ Run shell command helper ===
-function runCommand(cmd) {
-  return new Promise((resolve, reject) => {
-    exec(cmd, (error, stdout, stderr) => {
-      if (error) {
-        console.error(stderr || error.message);
-        return reject(new Error(stderr || error.message));
-      }
-      resolve(stdout);
-    });
-  });
-}
 
