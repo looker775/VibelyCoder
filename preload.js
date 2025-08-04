@@ -21,5 +21,10 @@ contextBridge.exposeInMainWorld("vibelyAPI", {
   // 🏗️ Run build (package as website/app via Vercel/Netlify/Codemagic)
   runBuild: async () => {
     return await ipcRenderer.invoke("project:build");
+  },
+
+  // 📱 Generate mobile app via GitHub push (Expo-based)
+  buildMobileApp: async () => {
+    return await ipcRenderer.invoke("mobile:build");
   }
 });
