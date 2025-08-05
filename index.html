@@ -108,7 +108,6 @@
       height: 100%;
       border: none;
     }
-    /* 🔘 Action buttons for Builder */
     .builder-actions {
       margin-bottom: 10px;
     }
@@ -125,6 +124,18 @@
       background: #333;
     }
   </style>
+
+  <!-- ✅ Add preload bridge fallback in case Electron is not injected -->
+  <script>
+    if (!window.vibelyAPI) {
+      window.vibelyAPI = {
+        sendMessageToAI: async (msg) => "⚠️ Backend not available",
+        saveProject: async () => ({ success: false, error: "Backend missing" }),
+        loadProject: async () => ({ success: false, error: "Backend missing" }),
+        runBuild: async () => ({ success: false, error: "Backend missing" })
+      };
+    }
+  </script>
 </head>
 <body>
   <header>🚀 VibelyCoder</header>
@@ -151,8 +162,6 @@
     <!-- Section 2: Drag & Drop Builder -->
     <section id="builder">
       <h2>🎨 Drag & Drop Builder</h2>
-
-      <!-- ✅ Save / Load / Build buttons -->
       <div class="builder-actions">
         <button onclick="saveProject()">💾 Save Project</button>
         <button onclick="loadProject()">📂 Load Project</button>
@@ -185,7 +194,6 @@
     document.getElementById(section).classList.add('active');
   }
 
-  // === 💬 AI Chat – CONNECT TO GPT‑4.1 ===
   async function sendMessage() {
     const msg = document.getElementById('chatMessage').value;
     if (!msg.trim()) return;
@@ -198,20 +206,17 @@
     chatLog.innerHTML += `<div><i>🤖 AI is thinking...</i></div>`;
     chatLog.scrollTop = chatLog.scrollHeight;
 
-    // ✅ Call Electron backend
     const reply = await window.vibelyAPI.sendMessageToAI(msg);
-
-    // Replace the "thinking" line with the real reply
     chatLog.innerHTML = chatLog.innerHTML.replace(`<div><i>🤖 AI is thinking...</i></div>`, "");
     chatLog.innerHTML += `<div><b>AI:</b> ${reply}</div>`;
     chatLog.scrollTop = chatLog.scrollHeight;
   }
 
-  // === 🎨 Drag & Drop ===
   function allowDrop(ev) { ev.preventDefault(); }
+
   function drop(ev) {
     ev.preventDefault();
-    const type = ev.dataTransfer.getData("text/plain");
+    const type = ev.dataTransfer.getData("text/plain") || "text";
     const canvas = document.getElementById("builder-canvas");
     if (type === "text") {
       canvas.innerHTML += "<p contenteditable='true'>✍ Editable Text</p>";
@@ -221,31 +226,29 @@
       canvas.innerHTML += "<video src='' controls style='width:100%;margin:10px 0;'>Video here</video>";
     }
   }
+
   document.querySelectorAll(".drag-item").forEach(item => {
     item.addEventListener("dragstart", ev => {
       ev.dataTransfer.setData("text/plain", item.dataset.type);
     });
   });
 
-  // === 🏗️ Save Project ===
   async function saveProject() {
     const html = document.getElementById("builder-canvas").innerHTML;
     const res = await window.vibelyAPI.saveProject({ html });
     alert(res.success ? "✅ Project saved!" : "❌ Save failed: " + res.error);
   }
 
-  // === 📂 Load Project ===
   async function loadProject() {
     const res = await window.vibelyAPI.loadProject();
     if (res.success) {
-      document.getElementById("builder-canvas").innerHTML = res.data.html;
+      document.getElementById("builder-canvas").innerHTML = res.data?.html || "<p>📝 No saved content</p>";
       alert("📂 Project loaded!");
     } else {
       alert("⚠️ " + res.error);
     }
   }
 
-  // === 🚀 Build ===
   async function triggerBuild() {
     const res = await window.vibelyAPI.runBuild();
     alert(res.success ? res.message : "❌ Build failed: " + res.error);
